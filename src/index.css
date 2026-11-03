@@ -1,3 +1,93 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@layer components {
+  .phone {
+    position: relative;
+    width: 86px;
+    height: 160px;
+    margin: 0 auto;
+    border: 5px solid #202631;
+    border-radius: 20px;
+    background: linear-gradient(
+      145deg,
+      var(--a, #a5a5b5),
+      var(--b, #283247)
+    );
+    box-shadow:
+      8px 12px 20px rgba(0, 0, 0, 0.22),
+      inset 2px 2px 5px rgba(255, 255, 255, 0.35);
+    transform: rotate(-8deg);
+    transition: transform 0.3s ease;
+  }
+
+  .phone:hover {
+    transform: rotate(0deg) scale(1.05);
+  }
+
+  .phone::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 14px;
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.28),
+      transparent 55%
+    );
+    pointer-events: none;
+  }
+
+  .phone .camera {
+    position: absolute;
+    top: 8px;
+    left: 7px;
+    width: 40px;
+    height: 43px;
+    border-radius: 12px;
+    background: rgba(20, 25, 35, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .phone .camera i {
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      #172a48 20%,
+      #05070c 45%,
+      #77849a 60%,
+      #111827 75%
+    );
+    border: 1px solid #aab4c4;
+  }
+
+  .phone .camera i:nth-child(1) {
+    top: 4px;
+    left: 4px;
+  }
+
+  .phone .camera i:nth-child(2) {
+    top: 4px;
+    right: 4px;
+  }
+
+  .phone .camera i:nth-child(3) {
+    bottom: 4px;
+    left: 4px;
+  }
+
+  .phone-lg {
+    width: 145px;
+    height: 275px;
+    border-width: 7px;
+    border-radius: 30px;
+  }
+
+  .phone-lg .camera {
+    transform: scale(1.4);
+    transform-origin: top left;
+  }
+}
