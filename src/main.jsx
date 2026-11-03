@@ -19,5 +19,37 @@ return <><Header/><main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 min-h-[65
 {page==='account'&&(account?<div className="card max-w-xl mx-auto p-7"><h1 className="text-2xl font-extrabold">Tài khoản của tôi</h1><div className="mt-5 space-y-3"><p><b>Họ tên:</b> {account.name}</p><p><b>Email:</b> {account.email}</p><p><b>Vai trò:</b> {admin?'Quản trị viên':'Khách hàng'}</p></div><div className="flex flex-wrap gap-3 mt-6"><button className="btn" onClick={()=>go('orders')}>Đơn hàng</button>{admin&&<button className="btn-outline" onClick={()=>go('admin')}>Quản trị</button>}<button className="btn-outline flex items-center gap-2" onClick={()=>{setAccount(null);go('home')}}><LogOut size={18}/> Đăng xuất</button></div></div>:<div className="card p-8 text-center">Bạn chưa đăng nhập. <button className="text-primary" onClick={()=>go('auth')}>Đăng nhập</button></div>)}
 {page==='orders'&&<><h1 className="text-2xl font-extrabold mb-5">Đơn hàng của tôi</h1>{orders.filter(o=>account?o.email===account.email:!o.email).length?orders.filter(o=>account?o.email===account.email:!o.email).map(o=><article className="card p-5 mb-4" key={o.id}><div className="flex flex-wrap justify-between gap-2"><b>#{o.id}</b><span className="bg-amber-100 text-amber-800 rounded-full px-3 py-1 text-sm">{o.status}</span></div><p className="text-xs text-slate-500 mt-1">{o.date} · {o.name}</p>{o.items.map(x=><p className="text-sm mt-3" key={x.id}>{x.name} × {x.qty}</p>)}<div className="font-bold text-red-600 mt-3">{money(o.total)}</div></article>):<div className="card p-9 text-center">Chưa có đơn hàng trên thiết bị này. <button className="text-primary" onClick={()=>go('catalog')}>Mua sắm ngay</button></div>}</>}
 {page==='admin'&&(admin?<><h1 className="text-2xl font-extrabold mb-5">Quản trị QUÝ MOBILE</h1><div className="flex gap-2 flex-wrap mb-5">{[['overview','Tổng quan'],['products','Sản phẩm'],['orders','Đơn hàng']].map(([k,v])=><button key={k} className={'pill '+(adminTab===k?'active':'')} onClick={()=>{setAdminTab(k);setEdit(null)}}>{v}</button>)}</div>{adminTab==='overview'&&<div className="grid sm:grid-cols-3 gap-4">{[['Sản phẩm',products.length],['Đơn hàng',orders.length],['Tổng giá trị đơn',money(orders.reduce((a,o)=>a+o.total,0))]].map(([k,v])=><div className="card p-6" key={k}><p className="text-slate-500 text-sm">{k}</p><b className="text-2xl mt-2 block">{v}</b></div>)}</div>}{adminTab==='products'&&<><button className="btn mb-4" onClick={()=>setEdit({id:null})}>+ Thêm sản phẩm</button>{edit&&<form onSubmit={saveProduct} className="card p-5 mb-5 grid sm:grid-cols-2 gap-3"><h2 className="font-bold sm:col-span-2">{edit.id?'Sửa sản phẩm':'Thêm sản phẩm'}</h2>{[['name','Tên sản phẩm','text'],['price','Giá bán','number'],['old','Giá gốc','number'],['stock','Tồn kho','number'],['storage','Dung lượng','text'],['ram','RAM','text']].map(([k,l,t])=><label key={k} className="text-sm">{l}<input className="field mt-1" name={k} type={t} min={t==='number'?0:undefined} required defaultValue={edit[k]??''}/></label>)}<label className="text-sm">Thương hiệu<select className="field mt-1" name="brand" defaultValue={edit.brand||'Apple'}>{['Apple','Samsung','Xiaomi','OPPO','vivo','Khác'].map(b=><option key={b}>{b}</option>)}</select></label><div className="sm:col-span-2 flex gap-2"><button className="btn">Lưu</button><button type="button" className="btn-outline" onClick={()=>setEdit(null)}>Hủy</button></div></form>}<div className="card divide-y">{products.map(p=><div key={p.id} className="p-4 flex flex-wrap justify-between items-center gap-3"><div><b>{p.name}</b><p className="text-sm text-slate-500">{money(p.price)} · Tồn: {p.stock}</p></div><div className="flex gap-2"><button className="btn-outline" onClick={()=>setEdit(p)}>Sửa</button><button className="btn-outline text-red-600" onClick={()=>{if(window.confirm('Xóa sản phẩm này?'))setProducts(ps=>ps.filter(x=>x.id!==p.id))}}>Xóa</button></div></div>)}</div></>}{adminTab==='orders'&&<div className="space-y-3">{orders.length?orders.map(o=><div className="card p-5 flex flex-wrap gap-3 justify-between" key={o.id}><div><b>#{o.id}</b><p className="text-sm">{o.name} · {o.phone}</p><p className="text-sm text-slate-500">{money(o.total)}</p></div><select className="field max-w-52" aria-label={'Trạng thái đơn '+o.id} value={o.status} onChange={e=>setOrders(os=>os.map(x=>x.id===o.id?{...x,status:e.target.value}:x))}>{['Chờ xác nhận','Đang xử lý','Đang giao','Đã giao','Đã hủy'].map(s=><option key={s}>{s}</option>)}</select></div>):<div className="card p-8">Chưa có đơn hàng.</div>}</div>}</>:<div className="card p-8 text-center"><p>Trang quản trị chỉ dành cho tài khoản quản trị.</p><p className="text-sm text-slate-500 mt-2">Bản demo chưa có máy chủ xác thực quản trị.</p><button className="btn mt-4" onClick={()=>go('home')}>Về trang chủ</button></div>)}
-</main><footer className="bg-navy text-white mt-10"><div className="max-w-6xl mx-auto px-4 py-9 grid sm:grid-cols-3 gap-7"><div><h2 className="font-black text-xl">◉ QUÝ MOBILE</h2><p className="text-sm text-slate-300 mt-3">Điện thoại chính hãng · Công nghệ trong tầm tay.</p></div><div><b>Khám phá</b><div className="mt-3 flex flex-col items-start gap-2 text-sm text-slate-300"><button onClick={()=>go('catalog')}>Điện thoại</button><button onClick={()=>go('cart')}>Giỏ hàng</button><button onClick={()=>go('orders')}>Tra cứu đơn hàng</button></div></div><div><b>Thông tin</b><p className="text-sm text-slate-300 mt-3">Đây là website demo. Giá, sản phẩm và chính sách chỉ mang tính minh họa.</p></div></div><div className="text-center text-xs text-slate-400 pb-5">© 2026 QUÝ MOBILE · Bản demo giao diện</div></footer></>}
+</main>
+
+<section className="max-w-6xl mx-auto px-4 py-8">
+  <div className="bg-white rounded-2xl shadow-md p-6">
+    <h2 className="text-2xl font-bold text-blue-900 mb-4">
+      👤 THÔNG TIN CHỦ WEBSITE
+    </h2>
+
+    <p><b>Chủ website:</b> Trần Văn Phú Quý</p>
+
+    <p>
+      <b>Số điện thoại:</b>{" "}
+      <a href="tel:0834842162" className="text-blue-600">
+        0834842162
+      </a>
+    </p>
+
+    <p><b>Địa chỉ:</b> Phường Quảng Phú, TP. Đà Nẵng</p>
+
+    <p><b>Facebook/Zalo:</b> 0834842162 - Trần Quý</p>
+
+    <p><b>Người thiết kế website:</b> Phú Quý</p>
+
+    <a
+      href="tel:0834842162"
+      className="inline-block mt-4 bg-blue-600 text-white px-5 py-3 rounded-xl"
+    >
+      📞 Gọi ngay
+    </a>
+  </div>
+</section>
+
+<footer className="bg-navy text-white mt-10"><div className="max-w-6xl mx-auto px-4 py-9 grid sm:grid-cols-3 gap-7"><div><h2 className="font-black text-xl">◉ QUÝ MOBILE</h2><p className="text-sm text-slate-300 mt-3">Điện thoại chính hãng · Công nghệ trong tầm tay.</p></div><div><b>Khám phá</b><div className="mt-3 flex flex-col items-start gap-2 text-sm text-slate-300"><button onClick={()=>go('catalog')}>Điện thoại</button><button onClick={()=>go('cart')}>Giỏ hàng</button><button onClick={()=>go('orders')}>Tra cứu đơn hàng</button></div></div><div><b>Thông tin</b><p className="text-sm text-slate-300 mt-3">Đây là website demo. Giá, sản phẩm và chính sách chỉ mang tính minh họa.</p></div></div><div className="text-center text-xs text-slate-400 pb-5">© 2026 QUÝ MOBILE · Bản demo giao diện</div></footer></>}
 createRoot(document.getElementById('root')).render(<App/>);
