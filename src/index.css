@@ -91,3 +91,68 @@
     transform-origin: top left;
   }
 }
+/* ===== QUÝ MOBILE - GIAO DIỆN MỚI ===== */
+
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+}
+
+/* Hiệu ứng mượt */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #f5f7fb;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thẻ sản phẩm */
+.card {
+  border-radius: 18px;
+  transition: transform 0.25s ease,
+              box-shadow 0.25s ease;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.09);
+  }
+}
+
+/* Nút bấm */
+.btn,
+.btn-outline {
+  border-radius: 12px;
+  transition: transform 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+.btn:active,
+.btn-outline:active {
+  transform: scale(0.97);
+}
+
+/* Hình điện thoại */
+.phone {
+  transition: transform 0.3s ease;
+}
+
+/* Tối ưu giao diện iPhone */
+@media (max-width: 640px) {
+  .card {
+    border-radius: 16px;
+  }
+
+  button,
+  input,
+  select {
+    font-size: 16px;
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+}
