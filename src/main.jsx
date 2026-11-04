@@ -5,7 +5,64 @@ const seed=[{id:1,name:'iPhone 16 Pro Max',brand:'Apple',price:29990000,old:3299
 const money=n=>Number(n||0).toLocaleString('vi-VN')+'₫';const get=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 function PhoneArt({p,large=false}){return <div className={'phone '+(large?'phone-lg':'')} style={{'--a':p.color,'--b':p.shade}} aria-label={'Hình minh họa '+p.name} role="img"><span className="camera"><i/><i/><i/></span></div>}
 function App(){const[products,setProducts]=useState(()=>get('qm_products',seed)),[cart,setCart]=useState(()=>get('qm_cart',[])),[orders,setOrders]=useState(()=>get('qm_orders',[])),[account,setAccount]=useState(()=>get('qm_account',null)),[users,setUsers]=useState(()=>get('qm_users',[])),[page,setPage]=useState('home'),[selected,setSelected]=useState(null),[search,setSearch]=useState(''),[brand,setBrand]=useState('Tất cả'),[sort,setSort]=useState('default'),[menu,setMenu]=useState(false),[notice,setNotice]=useState(''),[authMode,setAuthMode]=useState('login'),[adminTab,setAdminTab]=useState('overview'),[edit,setEdit]=useState(null),[payment,setPayment]=useState('COD');useEffect(()=>save('qm_products',products),[products]);useEffect(()=>save('qm_cart',cart),[cart]);useEffect(()=>save('qm_orders',orders),[orders]);useEffect(()=>save('qm_account',account),[account]);useEffect(()=>save('qm_users',users),[users]);const go=p=>{setPage(p);setMenu(false);window.scrollTo({top:0,behavior:'smooth'})};const toast=t=>{setNotice(t);setTimeout(()=>setNotice(''),3500)};const add=(id,qty=1)=>{const p=products.find(x=>x.id===id);const current=cart.find(x=>x.id===id)?.qty||0;if(!p||current+qty>p.stock)return toast('Số lượng vượt quá tồn kho');setCart(c=>c.some(x=>x.id===id)?c.map(x=>x.id===id?{...x,qty:x.qty+qty}:x):[...c,{id,qty}]);toast('Đã thêm vào giỏ hàng')};const change=(id,delta)=>setCart(c=>c.map(x=>x.id===id?{...x,qty:Math.max(0,Math.min(products.find(p=>p.id===id)?.stock||0,x.qty+delta))}:x).filter(x=>x.qty>0));const items=cart.map(x=>({...products.find(p=>p.id===x.id),qty:x.qty})).filter(x=>x.id);const total=items.reduce((a,x)=>a+x.price*x.qty,0);const count=cart.reduce((a,x)=>a+x.qty,0);const list=useMemo(()=>products.filter(p=>(brand==='Tất cả'||p.brand===brand)&&p.name.toLowerCase().includes(search.toLowerCase())).sort((a,b)=>sort==='asc'?a.price-b.price:sort==='desc'?b.price-a.price:0),[products,brand,search,sort]);const detail=p=>{setSelected(p.id);go('detail')};const admin=account?.role==='admin';const ProductCard=({p})=><article className="card overflow-hidden"><button type="button" className="block w-full bg-gradient-to-b from-slate-50 to-blue-50 h-48 relative" onClick={()=>detail(p)}><span className="absolute top-3 left-3 bg-red-500 text-white rounded-md text-xs px-2 py-1 font-semibold">{p.tag}</span><PhoneArt p={p}/></button><div className="p-3 sm:p-4"><button className="font-bold text-left text-sm sm:text-base min-h-11 hover:text-primary" onClick={()=>detail(p)}>{p.name} {p.storage}</button><div className="text-xs text-slate-500 mt-1">{p.ram} RAM · Chính hãng</div><div className="text-red-600 font-extrabold mt-2 text-base sm:text-lg">{money(p.price)}</div><div className="line-through text-slate-400 text-xs">{money(p.old)}</div><button className="btn w-full mt-3 text-sm" disabled={!p.stock} onClick={()=>add(p.id)}>{p.stock?'Thêm vào giỏ':'Hết hàng'}</button></div></article>;
-function submitAuth(e){e.preventDefault();const f=new FormData(e.currentTarget),email=String(f.get('email')).trim().toLowerCase(),pass=String(f.get('password'));if(authMode==='register'){if(users.some(u=>u.email===email))return toast('Email đã được đăng ký');const u={name:String(f.get('name')).trim(),email,password:pass,role:'customer'};if(!u.name||pass.length<6)return toast('Nhập tên và mật khẩu ít nhất 6 ký tự');setUsers([...users,u]);setAccount({name:u.name,email:u.email,role:u.role});go('account')}else{const u=users.find(u=>u.email===email&&u.password===pass);if(!u)return toast('Email hoặc mật khẩu chưa đúng');setAccount({name:u.name,email:u.email,role:u.role});go('account')}}
+async function submitAuth(e) {
+  e.preventDefault();
+
+  const f = new FormData(e.currentTarget);
+  const email = String(f.get('email')).trim().toLowerCase();
+  const password = String(f.get('password'));
+
+  try {
+    if (authMode === 'register') {
+      const name = String(f.get('name')).trim();
+
+      if (!name || password.length < 6) {
+        return toast('Nhập tên và mật khẩu ít nhất 6 ký tự');
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name }
+        }
+      });
+
+      if (error) throw error;
+
+      if (!data.session) {
+        return toast('Đăng ký thành công. Kiểm tra email để xác nhận tài khoản.');
+      }
+
+      setAccount({ name, email, role: 'customer' });
+      go('account');
+    } else {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      const { data: adminData, error: adminError } = await supabase
+        .from('admin_users')
+        .select('user_id')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+
+      if (adminError) throw adminError;
+
+      const role = adminData ? 'admin' : 'customer';
+      const name = data.user.user_metadata?.name || email.split('@')[0];
+
+      setAccount({ name, email, role });
+      go(role === 'admin' ? 'admin' : 'account');
+    }
+  } catch (error) {
+    console.error('Lỗi xác thực:', error);
+    toast('Không thể đăng nhập. Vui lòng kiểm tra tài khoản hoặc cấu hình Supabase.');
+  }
+}
 function checkout(e){e.preventDefault();if(!items.length)return toast('Giỏ hàng đang trống');const f=new FormData(e.currentTarget);const name=String(f.get('name')).trim(),phone=String(f.get('phone')).trim(),address=String(f.get('address')).trim();if(!name||!/^(0|\+84)\d{9,10}$/.test(phone.replace(/\s/g,''))||address.length<8)return toast('Vui lòng nhập đúng tên, số điện thoại và địa chỉ');const order={id:'QM'+Date.now().toString().slice(-9),name,phone,address,note:String(f.get('note')),payment,items:items.map(x=>({id:x.id,name:x.name,price:x.price,qty:x.qty})),total,status:'Chờ xác nhận',email:account?.email||'',date:new Date().toLocaleString('vi-VN')};setOrders(o=>[order,...o]);setProducts(ps=>ps.map(p=>({...p,stock:p.stock-(cart.find(c=>c.id===p.id)?.qty||0)})));setCart([]);go('success');setSelected(order.id)}
 function saveProduct(e){e.preventDefault();const f=new FormData(e.currentTarget);const p={id:edit?.id||Date.now(),name:String(f.get('name')).trim(),brand:String(f.get('brand')),price:Number(f.get('price')),old:Number(f.get('old')),stock:Number(f.get('stock')),storage:String(f.get('storage')),ram:String(f.get('ram')),tag:'Mới',color:'#8bb8ef',shade:'#273d70',screen:'Đang cập nhật',camera:'Đang cập nhật',battery:'Đang cập nhật'};if(!p.name||p.price<=0||p.old<0||p.stock<0||!Number.isInteger(p.stock))return toast('Kiểm tra lại dữ liệu sản phẩm');setProducts(ps=>edit?ps.map(x=>x.id===edit.id?{...x,...p}:x):[p,...ps]);setEdit(null);toast('Đã lưu sản phẩm')}
 const Header=()=><><div className="bg-navy text-white"><div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3"><button className="font-black text-xl tracking-tight whitespace-nowrap" onClick={()=>go('home')}>◉ QUÝ <span className="text-blue-400">MOBILE</span></button><form onSubmit={e=>{e.preventDefault();go('catalog')}} className="hidden sm:flex flex-1 max-w-lg ml-4 relative"><input aria-label="Tìm sản phẩm" className="field pr-11 text-slate-800" placeholder="Tìm điện thoại, thương hiệu..." value={search} onChange={e=>setSearch(e.target.value)}/><button className="absolute right-2 top-2 text-primary p-1" aria-label="Tìm kiếm"><Search size={23}/></button></form><div className="ml-auto flex items-center gap-2"><button className="p-2 flex items-center gap-1 text-sm" onClick={()=>go(account?'account':'auth')}><UserRound size={21}/><span className="hidden md:inline">{account?.name||'Đăng nhập'}</span></button><button className="p-2 flex items-center gap-1 relative" onClick={()=>go('cart')} aria-label={'Giỏ hàng '+count+' sản phẩm'}><ShoppingCart size={22}/><span className="absolute -top-1 right-0 rounded-full bg-red-500 text-xs px-1.5">{count}</span></button><button className="sm:hidden p-2" onClick={()=>setMenu(!menu)} aria-label="Menu">{menu?<X/>:<Menu/>}</button></div></div><nav className={'max-w-6xl mx-auto px-4 pb-3 sm:pb-0 flex flex-wrap gap-1 sm:gap-5 text-sm '+(!menu?'hidden sm:flex':'flex')}>{[['home','Trang chủ'],['catalog','Điện thoại'],['cart','Giỏ hàng'],['orders','Đơn hàng'],...(admin?[['admin','Quản trị']]:[])].map(([key,label])=><button key={key} className={'px-3 py-2 rounded-t-lg '+(page===key?'bg-primary':'hover:bg-slate-800')} onClick={()=>go(key)}>{label}</button>)}</nav></div><div className="sm:hidden px-4 py-3 bg-white border-b"><form onSubmit={e=>{e.preventDefault();go('catalog')}} className="flex gap-2"><input className="field" aria-label="Tìm kiếm điện thoại" placeholder="Tìm điện thoại..." value={search} onChange={e=>setSearch(e.target.value)}/><button className="btn" aria-label="Tìm"><Search/></button></form></div></>;
